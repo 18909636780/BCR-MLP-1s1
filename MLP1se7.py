@@ -115,11 +115,10 @@ if st.button("Predict"):
     st.subheader("SHAP Force Plot Explanation")
 
     # 创建SHAP解释器
-    # 假设 X_train 是用于训练模型的特征数据
-    df=pd.read_csv('modified_train_data_1se3.csv',encoding='utf8')
-    ytrain=df.Recurrence_after_2_Years
-    x_train=df.drop('Recurrence_after_2_Years',axis=1)
-    from sklearn.preprocessing import StandardScaler
+    df = pd.read_csv('modified_train_data_1se3.csv', encoding='utf8')
+    ytrain = df.Recurrence_after_2_Years
+    x_train = df.drop('Recurrence_after_2_Years', axis=1)
+    
     continuous_cols = [1,4]
     xtrain = x_train.copy()
     scaler = StandardScaler()
@@ -127,35 +126,40 @@ if st.button("Predict"):
 
     explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
     
-     # 获取SHAP值 - 修改这部分
+    # 获取SHAP值
     shap_values = explainer_shap.shap_values(final_features_df)
     
-    # 确保shap_values和特征维度匹配
-    if isinstance(shap_values, list):
-        # 对于分类模型，shap_values是一个列表，每个类一个数组
-        shap_values = shap_values[predicted_class][0]  # 取预测类别的SHAP值
-    else:
-        shap_values = shap_values[0]  # 回归模型情况
-    
-    # 准备特征值
-    feature_values_for_plot = final_features_df.iloc[0].values
-    
-    # 创建更大的图形
+    # 准备绘图
     plt.figure(figsize=(12, 4), dpi=120)
     
-    # Display the SHAP force plot
-    shap.force_plot(
-        explainer_shap.expected_value[predicted_class],
-        shap_values,
-        feature_values_for_plot,
-        feature_names=feature_names,
-        matplotlib=True,
-        show=False,
-        text_rotation=15,
-        plot_cmap="PkYg"
-    )
+    # 使用HTML方式显示force plot
+    if predicted_class == 1:
+        force_plot = shap.force_plot(
+            explainer_shap.expected_value[1],
+            shap_values[1][0],  # 取第一个样本的SHAP值
+            final_features_df.iloc[0],
+            feature_names=feature_names,
+            show=False,
+            matplotlib=False  # 关键修改：不使用matplotlib
+        )
+    else:
+        force_plot = shap.force_plot(
+            explainer_shap.expected_value[0],
+            shap_values[0][0],  # 取第一个样本的SHAP值
+            final_features_df.iloc[0],
+            feature_names=feature_names,
+            show=False,
+            matplotlib=False  # 关键修改：不使用matplotlib
+        )
     
-    # 调整图形布局并保存
-    plt.tight_layout()
-    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=150)
-    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation', use_column_width=True)
+    # 保存为HTML文件然后显示
+    shap.save_html("shap_force_plot.html", force_plot)
+    with open("shap_force_plot.html", "r") as f:
+        html = f.read()
+    st.components.v1.html(html, height=400, scrolling=True)
+
+    # 版本兼容性警告处理
+    st.warning("""
+    Note: You're seeing this because of version differences between the saved model and current scikit-learn. 
+    This shouldn't affect predictions but consider retraining your model with the current version for best compatibility.
+    """)
