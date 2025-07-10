@@ -111,32 +111,54 @@ if st.button("Predict"):
           )    
     st.write(advice)
 
-    # SHAP Explanation
     st.subheader("SHAP Force Plot Explanation")
 
-    # 创建SHAP解释器
-    # 假设 X_train 是用于训练模型的特征数据
-    df=pd.read_csv('modified_train_data_1se3.csv',encoding='utf8')
-    ytrain=df.Recurrence_after_2_Years
-    x_train=df.drop('Recurrence_after_2_Years',axis=1)
-    from sklearn.preprocessing import StandardScaler
-    continuous_cols = [1,4]
-    xtrain = x_train.copy()
-    scaler = StandardScaler()
-    xtrain.iloc[:, continuous_cols] = scaler.fit_transform(x_train.iloc[:, continuous_cols])
+# 创建SHAP解释器
+# 假设 X_train 是用于训练模型的特征数据
+df = pd.read_csv('modified_train_data_1se3.csv', encoding='utf8')
+ytrain = df.Recurrence_after_2_Years
+x_train = df.drop('Recurrence_after_2_Years', axis=1)
 
-    explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
-    
-    # 获取SHAP值
-    shap_values = explainer_shap.shap_values(pd.DataFrame(final_features_df,columns=feature_names))
-    
-  # 将标准化前的原始数据存储在变量中
-    original_feature_values = pd.DataFrame(features, columns=feature_names)
+from sklearn.preprocessing import StandardScaler
+continuous_cols = [1,4]
+xtrain = x_train.copy()
+scaler = StandardScaler()
+xtrain.iloc[:, continuous_cols] = scaler.fit_transform(x_train.iloc[:, continuous_cols])
+
+explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
+
+# 获取SHAP值
+shap_values = explainer_shap.shap_values(pd.DataFrame(final_features_df, columns=feature_names))
+
+# 将标准化前的原始数据存储在变量中
+original_feature_values = pd.DataFrame(features, columns=feature_names)
+
+# Create a figure with larger size and adjust layout
+plt.figure(figsize=(12, 8))
 
 # Display the SHAP force plot for the predicted class    
-    if predicted_class == 1:        
-        shap.force_plot(explainer_shap.expected_value[1], shap_values[:,:,1], original_feature_values, matplotlib=True)    
-    else:        
-        shap.force_plot(explainer_shap.expected_value[0], shap_values[:,:,0], original_feature_values, matplotlib=True)    
-    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)    
-    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation')
+if predicted_class == 1:        
+    shap.force_plot(
+        explainer_shap.expected_value[1], 
+        shap_values[:,:,1], 
+        original_feature_values, 
+        matplotlib=True,
+        text_rotation=45,  # Rotate feature names by 45 degrees
+        plot_cmap="PkYg"   # Alternative color scheme if needed
+    )    
+else:        
+    shap.force_plot(
+        explainer_shap.expected_value[0], 
+        shap_values[:,:,0], 
+        original_feature_values, 
+        matplotlib=True,
+        text_rotation=45,  # Rotate feature names by 45 degrees
+        plot_cmap="PkYg"   # Alternative color scheme if needed
+    )    
+
+# Adjust layout to prevent label overlap
+plt.subplots_adjust(bottom=0.3)  # Increase bottom margin for rotated labels
+plt.tight_layout()  # Automatically adjust subplot parameters
+
+plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)    
+st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation')
