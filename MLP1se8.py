@@ -92,54 +92,32 @@ if st.button("Predict"):
         )    
     st.write(advice)
 
-   # SHAP解释部分
+   # SHAP Explanation
     st.subheader("SHAP Force Plot Explanation")
+
+    # 创建SHAP解释器
+    # 假设 X_train 是用于训练模型的特征数据
+    df=pd.read_csv('modified_train_data_1se3.csv',encoding='utf8')
+    ytrain=df.Recurrence_after_2_Years
+    x_train=df.drop('Recurrence_after_2_Years',axis=1)
+    from sklearn.preprocessing import StandardScaler
+    continuous_cols = [1,4]
+    xtrain = x_train.copy()
+    scaler = StandardScaler()
+    xtrain.iloc[:, continuous_cols] = scaler.fit_transform(x_train.iloc[:, continuous_cols])
+
+    explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
     
-    try:
-        # 加载训练数据
-        df = pd.read_csv('modified_train_data_1se3.csv', encoding='utf8')
-        ytrain = df.Recurrence_after_2_Years
-        x_train = df.drop('Recurrence_after_2_Years', axis=1)
-        
-        # 确保训练数据与输入特征顺序一致
-        x_train = x_train[feature_names]
-        
-        # 标准化连续特征（与预测时相同的方式）
-        continuous_cols = ["Tumor_Size_at_Diagnosis", "Numbe_of_Lymph_Nodes"]
-        xtrain = x_train.copy()
-        scaler_train = StandardScaler()
-        xtrain[continuous_cols] = scaler_train.fit_transform(x_train[continuous_cols])
-        
-        # 创建SHAP解释器（使用前100个样本来加速计算）
-        background = shap.sample(xtrain, 100) if len(xtrain) > 100 else xtrain
-        explainer_shap = shap.KernelExplainer(model.predict_proba, background)
-        
-        # 获取SHAP值
-        shap_values = explainer_shap.shap_values(final_features_df)
-        
-        # 创建图表
-        plt.figure(figsize=(12, 8))
-        
-        # 检查SHAP值维度
-        if len(shap_values[predicted_class][0]) != len(feature_names):
-            st.error("SHAP值与特征维度不匹配！请检查特征顺序和数量")
-        else:
-            # 显示力导向图
-            shap.force_plot(
-                explainer_shap.expected_value[predicted_class],
-                shap_values[predicted_class][0],  # 当前样本的SHAP值
-                final_features_df.iloc[0],        # 当前样本的特征值
-                feature_names=feature_names,     # 显式指定特征名
-                matplotlib=True,
-                text_rotation=45,
-                show=False
-            )
-            
-            plt.subplots_adjust(bottom=0.3)
-            plt.tight_layout()
-            plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=300)
-            st.image("shap_force_plot.png", caption='SHAP解释图')
-            
-    except Exception as e:
-        st.error(f"生成SHAP解释时出错: {str(e)}")
-        st.warning("请确保训练数据与模型使用的特征完全一致")
+    # 获取SHAP值
+    shap_values = explainer_shap.shap_values(pd.DataFrame(final_features_df,columns=feature_names))
+    
+  # 将标准化前的原始数据存储在变量中
+    original_feature_values = pd.DataFrame(features, columns=feature_names)
+
+# Display the SHAP force plot for the predicted class    
+    if predicted_class == 1:        
+        shap.force_plot(explainer_shap.expected_value[1], shap_values[:,:,1], original_feature_values, matplotlib=True,text_rotation=30)    
+    else:        
+        shap.force_plot(explainer_shap.expected_value[0], shap_values[:,:,0], original_feature_values, matplotlib=True,text_rotation=30)    
+    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)    
+    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation')
