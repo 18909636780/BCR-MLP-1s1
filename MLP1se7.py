@@ -133,10 +133,32 @@ if st.button("Predict"):
   # 将标准化前的原始数据存储在变量中
     original_feature_values = pd.DataFrame(features, columns=feature_names)
 
-# Display the SHAP force plot for the predicted class    
+# 创建更大的图形
+    plt.figure(figsize=(12, 4), dpi=120)  # 增加宽度和DPI
+    
+    # Display the SHAP force plot for the predicted class    
     if predicted_class == 1:        
-        shap.force_plot(explainer_shap.expected_value[1], shap_values[:,:,1], original_feature_values, matplotlib=True)    
+        shap.force_plot(
+            explainer_shap.expected_value[1], 
+            shap_values[1][0],  # 注意这里索引方式可能有变化
+            original_feature_values.iloc[0], 
+            matplotlib=True,
+            show=False,
+            text_rotation=15,  # 旋转文本防止重叠
+            plot_cmap="PkYg"   # 使用更清晰的配色方案
+        )    
     else:        
-        shap.force_plot(explainer_shap.expected_value[0], shap_values[:,:,0], original_feature_values, matplotlib=True)    
-    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)    
-    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation')
+        shap.force_plot(
+            explainer_shap.expected_value[0], 
+            shap_values[0][0],  # 注意这里索引方式可能有变化
+            original_feature_values.iloc[0], 
+            matplotlib=True,
+            show=False,
+            text_rotation=15,
+            plot_cmap="PkYg"
+        )
+    
+    # 调整图形布局并保存
+    plt.tight_layout()  # 自动调整布局防止重叠
+    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=150)  # 提高DPI
+    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation', use_column_width=True)
