@@ -32,7 +32,7 @@ Tumor_Grade_options = {
 feature_names = ["Tumor_Size_at_Diagnosis", "Tumor_Grade", "Lymph_Node_Metastasis", "Numbe_of_Lymph_Nodes", "Marital_Status_Unmarried", "Marital_Status_Married", "Marital_Status_Divorced"]
 
 # Streamlit user interface
-st.title("Breast Cancer Recurrence Predictor")
+st.markdown("<h3 style='text-align: left;'>Breast Cancer Recurrence Predictor</h3>", unsafe_allow_html=True)
 
 # Tumor_Size_at_Diagnosis
 Tumor_Size_at_Diagnosis = st.number_input("Tumor Size at Diagnosis(mm):", min_value=0, max_value=100, value=25)
