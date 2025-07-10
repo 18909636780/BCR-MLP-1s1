@@ -115,10 +115,11 @@ if st.button("Predict"):
     st.subheader("SHAP Force Plot Explanation")
 
     # 创建SHAP解释器
-    df = pd.read_csv('modified_train_data_1se3.csv', encoding='utf8')
-    ytrain = df.Recurrence_after_2_Years
-    x_train = df.drop('Recurrence_after_2_Years', axis=1)
-    
+    # 假设 X_train 是用于训练模型的特征数据
+    df=pd.read_csv('modified_train_data_1se3.csv',encoding='utf8')
+    ytrain=df.Recurrence_after_2_Years
+    x_train=df.drop('Recurrence_after_2_Years',axis=1)
+    from sklearn.preprocessing import StandardScaler
     continuous_cols = [1,4]
     xtrain = x_train.copy()
     scaler = StandardScaler()
@@ -126,54 +127,16 @@ if st.button("Predict"):
 
     explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
     
-    # 获取SHAP值 - 确保只处理单个样本
-    shap_values = explainer_shap.shap_values(final_features_df.iloc[0:1])  # 只取第一个样本
+    # 获取SHAP值
+    shap_values = explainer_shap.shap_values(pd.DataFrame(final_features_df,columns=feature_names))
     
-    # 调试信息 - 检查维度
-    st.write(f"SHAP values shape: {np.array(shap_values).shape}")
-    st.write(f"Feature values shape: {final_features_df.iloc[0:1].shape}")
-    
-    # 准备绘图
-    plt.figure(figsize=(12, 4), dpi=120)
-    
-    try:
-        # 使用HTML方式显示force plot
-        if isinstance(shap_values, list):
-            # 分类模型情况
-            force_plot = shap.force_plot(
-                explainer_shap.expected_value[predicted_class],
-                shap_values[predicted_class][0],  # 取预测类别的SHAP值
-                final_features_df.iloc[0],
-                feature_names=feature_names,
-                show=False,
-                matplotlib=False
-            )
-        else:
-            # 回归模型情况
-            force_plot = shap.force_plot(
-                explainer_shap.expected_value,
-                shap_values[0],  # 取第一个样本的SHAP值
-                final_features_df.iloc[0],
-                feature_names=feature_names,
-                show=False,
-                matplotlib=False
-            )
-        
-        # 保存为HTML文件然后显示
-        shap.save_html("shap_force_plot.html", force_plot)
-        with open("shap_force_plot.html", "r") as f:
-            html = f.read()
-        st.components.v1.html(html, height=400, scrolling=True)
-        
-    except Exception as e:
-        st.error(f"无法生成SHAP图: {str(e)}")
-        st.write("尝试使用summary plot代替...")
-        try:
-            if isinstance(shap_values, list):
-                shap.summary_plot(shap_values[predicted_class], final_features_df, plot_type="bar")
-            else:
-                shap.summary_plot(shap_values, final_features_df, plot_type="bar")
-            st.pyplot(plt.gcf())
-            plt.clf()
-        except Exception as e2:
-            st.error(f"也无法生成summary plot: {str(e2)}")
+  # 将标准化前的原始数据存储在变量中
+    original_feature_values = pd.DataFrame(features, columns=feature_names)
+
+# Display the SHAP force plot for the predicted class    
+    if predicted_class == 1:        
+        shap.force_plot(explainer_shap.expected_value[1], shap_values[:,:,1], original_feature_values, matplotlib=True)    
+    else:        
+        shap.force_plot(explainer_shap.expected_value[0], shap_values[:,:,0], original_feature_values, matplotlib=True)    
+    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)    
+    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation')
