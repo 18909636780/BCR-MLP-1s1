@@ -127,38 +127,35 @@ if st.button("Predict"):
 
     explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
     
-    # 获取SHAP值
-    shap_values = explainer_shap.shap_values(pd.DataFrame(final_features_df,columns=feature_names))
+     # 获取SHAP值 - 修改这部分
+    shap_values = explainer_shap.shap_values(final_features_df)
     
-  # 将标准化前的原始数据存储在变量中
-    original_feature_values = pd.DataFrame(features, columns=feature_names)
-
-# 创建更大的图形
-    plt.figure(figsize=(12, 4), dpi=120)  # 增加宽度和DPI
+    # 确保shap_values和特征维度匹配
+    if isinstance(shap_values, list):
+        # 对于分类模型，shap_values是一个列表，每个类一个数组
+        shap_values = shap_values[predicted_class][0]  # 取预测类别的SHAP值
+    else:
+        shap_values = shap_values[0]  # 回归模型情况
     
-    # Display the SHAP force plot for the predicted class    
-    if predicted_class == 1:        
-        shap.force_plot(
-            explainer_shap.expected_value[1], 
-            shap_values[1][0],  # 注意这里索引方式可能有变化
-            original_feature_values.iloc[0], 
-            matplotlib=True,
-            show=False,
-            text_rotation=15,  # 旋转文本防止重叠
-            plot_cmap="PkYg"   # 使用更清晰的配色方案
-        )    
-    else:        
-        shap.force_plot(
-            explainer_shap.expected_value[0], 
-            shap_values[0][0],  # 注意这里索引方式可能有变化
-            original_feature_values.iloc[0], 
-            matplotlib=True,
-            show=False,
-            text_rotation=15,
-            plot_cmap="PkYg"
-        )
+    # 准备特征值
+    feature_values_for_plot = final_features_df.iloc[0].values
+    
+    # 创建更大的图形
+    plt.figure(figsize=(12, 4), dpi=120)
+    
+    # Display the SHAP force plot
+    shap.force_plot(
+        explainer_shap.expected_value[predicted_class],
+        shap_values,
+        feature_values_for_plot,
+        feature_names=feature_names,
+        matplotlib=True,
+        show=False,
+        text_rotation=15,
+        plot_cmap="PkYg"
+    )
     
     # 调整图形布局并保存
-    plt.tight_layout()  # 自动调整布局防止重叠
-    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=150)  # 提高DPI
+    plt.tight_layout()
+    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=150)
     st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation', use_column_width=True)
