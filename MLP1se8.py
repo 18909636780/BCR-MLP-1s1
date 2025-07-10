@@ -92,49 +92,54 @@ if st.button("Predict"):
         )    
     st.write(advice)
 
-    # SHAP Explanation (now properly nested inside the Predict block)
+   # SHAP解释部分
     st.subheader("SHAP Force Plot Explanation")
     
-    # Load training data for SHAP explainer
-    df = pd.read_csv('modified_train_data_1se3.csv', encoding='utf8')
-    ytrain = df.Recurrence_after_2_Years
-    x_train = df.drop('Recurrence_after_2_Years', axis=1)
-    
-    # Prepare training data (same scaling as input features)
-    continuous_cols = [0, 3]  # Assuming these are the indices of continuous features
-    xtrain = x_train.copy()
-    scaler_train = StandardScaler()
-    xtrain.iloc[:, continuous_cols] = scaler_train.fit_transform(x_train.iloc[:, continuous_cols])
-    
-    # Create SHAP explainer
-    explainer_shap = shap.KernelExplainer(model.predict_proba, xtrain)
-    
-    # Get SHAP values
-    shap_values = explainer_shap.shap_values(final_features_df)
-    
-    # Create plot
-    plt.figure(figsize=(12, 8))
-    
-    if predicted_class == 1:        
-        shap.force_plot(
-            explainer_shap.expected_value[1], 
-            shap_values[1][0],  # Get first sample's SHAP values for class 1
-            final_features_df.iloc[0],  # Use the actual features used for prediction
-            matplotlib=True,
-            text_rotation=45,
-            plot_cmap="PkYg"
-        )    
-    else:        
-        shap.force_plot(
-            explainer_shap.expected_value[0], 
-            shap_values[0][0],  # Get first sample's SHAP values for class 0
-            final_features_df.iloc[0],  # Use the actual features used for prediction
-            matplotlib=True,
-            text_rotation=45,
-            plot_cmap="PkYg"
-        )    
-    
-    plt.subplots_adjust(bottom=0.3)
-    plt.tight_layout()
-    plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=1200)    
-    st.image("shap_force_plot.png", caption='SHAP Force Plot Explanation')
+    try:
+        # 加载训练数据
+        df = pd.read_csv('modified_train_data_1se3.csv', encoding='utf8')
+        ytrain = df.Recurrence_after_2_Years
+        x_train = df.drop('Recurrence_after_2_Years', axis=1)
+        
+        # 确保训练数据与输入特征顺序一致
+        x_train = x_train[feature_names]
+        
+        # 标准化连续特征（与预测时相同的方式）
+        continuous_cols = ["Tumor_Size_at_Diagnosis", "Numbe_of_Lymph_Nodes"]
+        xtrain = x_train.copy()
+        scaler_train = StandardScaler()
+        xtrain[continuous_cols] = scaler_train.fit_transform(x_train[continuous_cols])
+        
+        # 创建SHAP解释器（使用前100个样本来加速计算）
+        background = shap.sample(xtrain, 100) if len(xtrain) > 100 else xtrain
+        explainer_shap = shap.KernelExplainer(model.predict_proba, background)
+        
+        # 获取SHAP值
+        shap_values = explainer_shap.shap_values(final_features_df)
+        
+        # 创建图表
+        plt.figure(figsize=(12, 8))
+        
+        # 检查SHAP值维度
+        if len(shap_values[predicted_class][0]) != len(feature_names):
+            st.error("SHAP值与特征维度不匹配！请检查特征顺序和数量")
+        else:
+            # 显示力导向图
+            shap.force_plot(
+                explainer_shap.expected_value[predicted_class],
+                shap_values[predicted_class][0],  # 当前样本的SHAP值
+                final_features_df.iloc[0],        # 当前样本的特征值
+                feature_names=feature_names,     # 显式指定特征名
+                matplotlib=True,
+                text_rotation=45,
+                show=False
+            )
+            
+            plt.subplots_adjust(bottom=0.3)
+            plt.tight_layout()
+            plt.savefig("shap_force_plot.png", bbox_inches='tight', dpi=300)
+            st.image("shap_force_plot.png", caption='SHAP解释图')
+            
+    except Exception as e:
+        st.error(f"生成SHAP解释时出错: {str(e)}")
+        st.warning("请确保训练数据与模型使用的特征完全一致")
