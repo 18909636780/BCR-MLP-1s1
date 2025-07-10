@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
 # Load the model
-model = joblib.load('MLP1se7.pkl')
-scaler = joblib.load('scaler1se7.pkl') 
+model = joblib.load('MLP1se6.pkl')
+scaler = joblib.load('scaler1se6.pkl') 
 
 # Define feature options
 Level_of_Education_options = {    
